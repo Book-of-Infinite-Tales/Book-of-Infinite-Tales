@@ -80,10 +80,18 @@ export type StatusEffect = {
   name: string;
 };
 
+/** A passage reachable when the knight holds a particular status. */
+export type StatusEncounter = {
+  label: string;
+  passage: string;
+};
+
 /** A status card declared in the components file. */
 export type StatusCard = {
   id: string;
   name: string;
+  /** Passages associated with this status (e.g. escape attempts, evasion). */
+  encounters?: StatusEncounter[];
 };
 
 /**

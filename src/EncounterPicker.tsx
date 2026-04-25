@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Book, BookComponents } from './types';
 import { formatSource } from './loader';
 
-type EncounterType = 'character' | 'location' | 'milieu' | 'quest' | 'placeOfPower';
+type EncounterType = 'character' | 'location' | 'milieu' | 'quest' | 'placeOfPower' | 'status';
 
 export function EncounterPicker({
   book,
@@ -107,6 +107,13 @@ export function EncounterPicker({
               onClick={() => setEncounterType('placeOfPower')}
               label="Place of Power"
             />
+            <TypeButton
+              active={encounterType === 'status'}
+              disabled={!structure.statuses?.some((s) => s.encounters?.length)}
+              onClick={() => setEncounterType('status')}
+              label="Status"
+              disabledTitle="No status encounters in this book"
+            />
           </div>
         </section>
       )}
@@ -121,6 +128,14 @@ export function EncounterPicker({
 
       {currentAge && encounterType === 'location' && (
         <LocationFlow
+          structure={structure}
+          entryIds={new Set(Object.keys(book.entries))}
+          onSelect={onSelect}
+        />
+      )}
+
+      {currentAge && encounterType === 'status' && (
+        <StatusEncounterFlow
           structure={structure}
           entryIds={new Set(Object.keys(book.entries))}
           onSelect={onSelect}
@@ -233,18 +248,20 @@ function TypeButton({
   disabled,
   onClick,
   label,
+  disabledTitle,
 }: {
   active: boolean;
   disabled: boolean;
   onClick: () => void;
   label: string;
+  disabledTitle?: string;
 }) {
   return (
     <button
       className={active ? 'pill pill--active' : 'pill'}
       onClick={onClick}
       disabled={disabled}
-      title={disabled ? `No ${label.toLowerCase()}s in this book` : undefined}
+      title={disabled ? (disabledTitle ?? `No ${label.toLowerCase()}s in this book`) : undefined}
     >
       {label}
     </button>
@@ -509,6 +526,53 @@ function MilieuFlow({
         </section>
       )}
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Status encounter flow: flat list of all status encounters across all statuses
+// ---------------------------------------------------------------------------
+
+function StatusEncounterFlow({
+  structure,
+  entryIds,
+  onSelect,
+}: {
+  structure: BookComponents;
+  entryIds: Set<string>;
+  onSelect: (id: string, label: string) => void;
+}) {
+  const statusesWithEncounters = (structure.statuses ?? []).filter(
+    (s) => s.encounters?.length,
+  );
+
+  return (
+    <section className="card picker-step">
+      <h2>Status</h2>
+      <div className="button-grid">
+        {statusesWithEncounters.flatMap((s) =>
+          (s.encounters ?? []).map((e) => {
+            const exists = entryIds.has(e.passage);
+            return (
+              <button
+                key={`${s.id}-${e.passage}`}
+                className="pill"
+                disabled={!exists}
+                onClick={() => exists && onSelect(e.passage, `${s.name} — ${e.label}`)}
+                title={
+                  exists
+                    ? `${s.name} — ${e.label} → ${e.passage}`
+                    : `Passage ${e.passage} not in this book`
+                }
+              >
+                {s.name} — {e.label}
+                <span className="pill-detail">{e.passage}</span>
+              </button>
+            );
+          }),
+        )}
+      </div>
+    </section>
   );
 }
 
