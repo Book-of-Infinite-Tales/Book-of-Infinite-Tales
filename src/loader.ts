@@ -8,7 +8,7 @@ import type {
   ResolutionTarget,
 } from './types';
 import { INDEX_SCHEMA_VERSION } from './types';
-import { validateComponents, validateEntries, validateManifest, validateStatusRefs } from './validate';
+import { validateComponents, validateEntries, validateManifest, validateSkillRefs, validateStatusRefs } from './validate';
 
 const RAW_BASE = 'https://raw.githubusercontent.com';
 
@@ -162,6 +162,13 @@ async function finishLoadingBook(source: BookSource, manifestResp: Response): Pr
       throw new Error(`Components file "${manifest.components}" is not valid JSON.`);
     }
     validateComponents(components, new Set(Object.keys(entries)));
+    if (components.skills && components.skills.length > 0) {
+      validateSkillRefs(
+        entries,
+        new Set(components.skills.map((s) => s.name)),
+        new Set(components.skills.map((s) => s.category)),
+      );
+    }
     if (components.statuses && components.statuses.length > 0) {
       validateStatusRefs(entries, new Set(components.statuses.map((s) => s.name)));
     }

@@ -13,21 +13,28 @@ export type SkillName =
   | 'Warfare'
   | 'Sword & Shield'
   | 'Mounted'
-  | 'Hunting'
   // Spiritual
   | 'Piety'
   | 'Wisdom'
-  | 'Honor'
   | 'Magic'
   // Courtly
   | 'Diplomacy'
   | 'Cunning'
+  | 'Honor'
   // Wilderness
   | 'Nature Lore'
-  | 'Endure Hardship';
+  | 'Endure Hardship'
+  | 'Hunting';
 
 /** Skill category — use to allow any skill within the category. */
 export type SkillCategory = 'Martial' | 'Spiritual' | 'Courtly' | 'Wilderness';
+
+/** A skill declared in the components file, with its category. */
+export type Skill = {
+  id: string;
+  name: string;
+  category: SkillCategory;
+};
 
 /** The three tracks of renown, plus "Any" for player's choice of track. */
 export type RenownType = 'Divinity' | 'Romance' | 'Villainy' | 'Any';
@@ -321,6 +328,8 @@ export type BookComponents = {
   locations?: Location[];
   milieus?: Milieu[];
   quests?: Quest[];
+  /** Fixed set of skills for this game. When present, skill names in resolutions and rewards are validated against this list. */
+  skills?: Skill[];
   /** Fixed set of status cards for this game. When present, status names in rewards are validated against this list. */
   statuses?: StatusCard[];
   /** Entry id read at the very end of the game — shown alongside the age buttons. */

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateManifest, validateEntries, validateReward, validateComponents, validateStatusRefs } from './validate';
+import { validateManifest, validateEntries, validateReward, validateComponents, validateSkillRefs, validateStatusRefs } from './validate';
 import { parseGithubInput } from './loader';
 import type { BookComponents, BookManifest, Entry, ResolutionOption, Reward } from './types';
 
@@ -348,6 +348,93 @@ describe('validateComponents', () => {
     } catch (e) {
       expect((e as Error).message).toContain('components.');
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateSkillRefs
+// ---------------------------------------------------------------------------
+
+describe('validateSkillRefs', () => {
+  const names = new Set(['Piety', 'Wisdom', 'Warfare', 'Hunting', 'Diplomacy']);
+  const cats  = new Set(['Martial', 'Spiritual', 'Courtly', 'Wilderness']);
+
+  it('passes when no skills are referenced', () => {
+    expect(() => validateSkillRefs(entryMap(entry()), names, cats)).not.toThrow();
+  });
+
+  it('passes for a known skill name in using', () => {
+    const e = entry({
+      resolutions: [{ using: ['Piety'], target: 3, success: { body: 'ok' }, failure: { body: 'fail' } }],
+    });
+    expect(() => validateSkillRefs(entryMap(e), names, cats)).not.toThrow();
+  });
+
+  it('passes for a skill category in using', () => {
+    const e = entry({
+      resolutions: [{ using: ['Spiritual'], target: 3, success: { body: 'ok' }, failure: { body: 'fail' } }],
+    });
+    expect(() => validateSkillRefs(entryMap(e), names, cats)).not.toThrow();
+  });
+
+  it('passes for a renown type in using', () => {
+    const e = entry({
+      resolutions: [{ using: ['Divinity'], target: 3, success: { body: 'ok' }, failure: { body: 'fail' } }],
+    });
+    expect(() => validateSkillRefs(entryMap(e), names, cats)).not.toThrow();
+  });
+
+  it('passes for "Any" renown in using', () => {
+    const e = entry({
+      resolutions: [{ using: ['Any'], target: 3, success: { body: 'ok' }, failure: { body: 'fail' } }],
+    });
+    expect(() => validateSkillRefs(entryMap(e), names, cats)).not.toThrow();
+  });
+
+  it('throws for an unknown skill name in using', () => {
+    const e = entry({
+      resolutions: [{ using: ['Jousting' as import('./types').CheckOption], target: 3, success: { body: 'ok' }, failure: { body: 'fail' } }],
+    });
+    expect(() => validateSkillRefs(entryMap(e), names, cats)).toThrow(/unknown skill\/category "Jousting"/);
+  });
+
+  it('throws for a misspelled skill in using', () => {
+    const e = entry({
+      resolutions: [{ using: ['piety' as import('./types').CheckOption], target: 3, success: { body: 'ok' }, failure: { body: 'fail' } }],
+    });
+    expect(() => validateSkillRefs(entryMap(e), names, cats)).toThrow(/unknown skill\/category "piety"/);
+  });
+
+  it('passes for a known skill name in a skill reward', () => {
+    const e = entry({ rewards: { skills: [{ name: 'Piety' }] } });
+    expect(() => validateSkillRefs(entryMap(e), names, cats)).not.toThrow();
+  });
+
+  it('throws for an unknown skill name in a skill reward', () => {
+    const e = entry({ rewards: { skills: [{ name: 'Jousting' } as unknown as import('./types').SkillReward] } });
+    expect(() => validateSkillRefs(entryMap(e), names, cats)).toThrow(/unknown skill name "Jousting"/);
+  });
+
+  it('passes for a known category in a skill reward', () => {
+    const e = entry({ rewards: { skills: [{ category: 'Martial', count: 1 }] } });
+    expect(() => validateSkillRefs(entryMap(e), names, cats)).not.toThrow();
+  });
+
+  it('throws for an unknown category in a skill reward', () => {
+    const e = entry({ rewards: { skills: [{ category: 'Arcane' } as unknown as import('./types').SkillReward] } });
+    expect(() => validateSkillRefs(entryMap(e), names, cats)).toThrow(/unknown skill category "Arcane"/);
+  });
+
+  it('validates skill rewards in resolution outcomes', () => {
+    const e = entry({
+      resolutions: [{
+        using: ['Piety'],
+        target: 3,
+        success: { body: 'ok', rewards: { skills: [{ name: 'Jousting' } as unknown as import('./types').SkillReward] } },
+        failure: { body: 'fail' },
+      }],
+    });
+    expect(() => validateSkillRefs(entryMap(e), names, cats)).toThrow(/unknown skill name "Jousting"/);
   });
 });
 

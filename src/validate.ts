@@ -174,6 +174,57 @@ export function validateComponents(s: BookComponents, entryIds: Set<string>): vo
 }
 
 /**
+ * When the components file declares skills, validate that every skill name
+ * and category used in resolution "using" arrays and skill rewards is known.
+ * Renown types (Divinity, Romance, Villainy, Any) are always valid in "using".
+ */
+export function validateSkillRefs(
+  entries: Record<string, Entry>,
+  validSkillNames: Set<string>,
+  validCategories: Set<string>,
+): void {
+  const errors: string[] = [];
+  const validUsing = new Set([...validSkillNames, ...validCategories, 'Divinity', 'Romance', 'Villainy', 'Any']);
+
+  for (const [id, entry] of Object.entries(entries)) {
+    for (const res of entry.resolutions ?? []) {
+      for (const u of res.using ?? []) {
+        if (!validUsing.has(u)) {
+          errors.push(`Entry "${id}": resolution uses unknown skill/category "${u}".`);
+        }
+      }
+    }
+    checkSkillReward(id, 'rewards', entry.rewards, validSkillNames, validCategories, errors);
+    for (const res of entry.resolutions ?? []) {
+      checkSkillReward(id, 'resolution success', res.success?.rewards, validSkillNames, validCategories, errors);
+      checkSkillReward(id, 'resolution failure', res.failure?.rewards, validSkillNames, validCategories, errors);
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`Unknown skill references:\n• ${errors.join('\n• ')}`);
+  }
+}
+
+function checkSkillReward(
+  entryId: string,
+  location: string,
+  reward: Reward | undefined,
+  validNames: Set<string>,
+  validCategories: Set<string>,
+  errors: string[],
+): void {
+  for (const s of reward?.skills ?? []) {
+    if ('name' in s && !validNames.has(s.name)) {
+      errors.push(`Entry "${entryId}" ${location}: unknown skill name "${s.name}".`);
+    }
+    if ('category' in s && !validCategories.has(s.category)) {
+      errors.push(`Entry "${entryId}" ${location}: unknown skill category "${s.category}".`);
+    }
+  }
+}
+
+/**
  * When the components file declares a fixed set of status cards, validate
  * that every status name used in rewards across all entries is in that set.
  */
