@@ -1,5 +1,6 @@
 import type {
   Book,
+  BookComponents,
   BookIndex,
   BookManifest,
   BookSource,
@@ -7,7 +8,7 @@ import type {
   ResolutionTarget,
 } from './types';
 import { INDEX_SCHEMA_VERSION } from './types';
-import { validateEntries, validateManifest, validateStructure } from './validate';
+import { validateComponents, validateEntries, validateManifest } from './validate';
 
 const RAW_BASE = 'https://raw.githubusercontent.com';
 
@@ -142,16 +143,28 @@ async function finishLoadingBook(source: BookSource, manifestResp: Response): Pr
     const raw = (await entriesResp.json()) as Entry[] | Record<string, Entry>;
     entries = Array.isArray(raw) ? indexEntries(raw) : raw;
   } else {
-    entries = manifest.entries;
+    entries = Array.isArray(manifest.entries) ? indexEntries(manifest.entries) : manifest.entries;
   }
 
   validateEntries(entries);
 
-  if (manifest.structure) {
-    validateStructure(manifest.structure, new Set(Object.keys(entries)));
+  let components: BookComponents | undefined;
+  if (typeof manifest.components === 'string') {
+    const compResp = await fetch(rawUrl(source, manifest.components));
+    if (!compResp.ok) {
+      throw new Error(
+        `Could not fetch components file "${manifest.components}" (HTTP ${compResp.status}).`,
+      );
+    }
+    try {
+      components = (await compResp.json()) as BookComponents;
+    } catch {
+      throw new Error(`Components file "${manifest.components}" is not valid JSON.`);
+    }
+    validateComponents(components, new Set(Object.keys(entries)));
   }
 
-  return { manifest, entries, source };
+  return { manifest, entries, components, source };
 }
 
 function indexEntries(list: Entry[]): Record<string, Entry> {

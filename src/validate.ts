@@ -1,6 +1,6 @@
 import type {
   BookManifest,
-  BookStructure,
+  BookComponents,
   Entry,
   ResolutionOption,
   ResolutionOutcome,
@@ -142,7 +142,7 @@ export function validateReward(entryId: string, reward: Reward, errors: string[]
   }
 }
 
-export function validateStructure(s: BookStructure, entryIds: Set<string>): void {
+export function validateComponents(s: BookComponents, entryIds: Set<string>): void {
   const errors: string[] = [];
 
   const checkEntry = (where: string, id: string | undefined) => {
@@ -153,28 +153,28 @@ export function validateStructure(s: BookStructure, entryIds: Set<string>): void
   };
 
   if (!Array.isArray(s.ages) || s.ages.length === 0) {
-    errors.push('structure.ages must be a non-empty array.');
+    errors.push('components.ages must be a non-empty array.');
   } else {
     for (const a of s.ages) {
-      if (!a.id || !a.name) errors.push(`structure.ages: age is missing id or name.`);
-      checkEntry(`structure.ages[${a.id}].startPassage`, a.startPassage);
+      if (!a.id || !a.name) errors.push(`components.ages: age is missing id or name.`);
+      checkEntry(`components.ages[${a.id}].startPassage`, a.startPassage);
     }
   }
 
   for (const loc of s.locations ?? []) {
-    checkEntry(`structure.locations[${loc.id}].passage`, loc.passage);
+    checkEntry(`components.locations[${loc.id}].passage`, loc.passage);
     for (const [ageId, passage] of Object.entries(loc.visitPassages ?? {})) {
-      checkEntry(`structure.locations[${loc.id}].visitPassages[${ageId}]`, passage);
+      checkEntry(`components.locations[${loc.id}].visitPassages[${ageId}]`, passage);
     }
   }
 
   for (const q of s.quests ?? []) {
-    checkEntry(`structure.quests[${q.id}].passage`, q.passage);
+    checkEntry(`components.quests[${q.id}].passage`, q.passage);
   }
 
-  checkEntry('structure.epiloguePassage', s.epiloguePassage);
+  checkEntry('components.epiloguePassage', s.epiloguePassage);
 
   if (errors.length > 0) {
-    throw new Error(`Book structure validation failed:\n• ${errors.join('\n• ')}`);
+    throw new Error(`Book components validation failed:\n• ${errors.join('\n• ')}`);
   }
 }

@@ -212,13 +212,14 @@ export type Entry = {
   goto?: string;
 };
 
-// --- Book structure --------------------------------------------------------
+// --- Book components -------------------------------------------------------
 //
-// Optional `structure` section on the manifest describes the game's
-// components — Ages, Characters, Features, Locations, Milieus, Terrains,
-// Quests — so the reader can help compose the right passage number for a
-// given encounter. A book can omit this section entirely, in which case the
-// reader just provides manual passage lookup.
+// Optional `components` field on the manifest points to a separate JSON file
+// describing the game's physical components — Ages, Characters, Features,
+// Locations, Milieus, Terrains, Quests — so the reader can help compose the
+// right passage number for a given encounter. Multiple books can share the
+// same components file. A book can omit this field entirely, in which case
+// the reader just provides manual passage lookup.
 
 /** An Age of the game. Has a start passage read when the age begins. */
 export type Age = {
@@ -227,7 +228,7 @@ export type Age = {
   /** Full name, e.g. "Golden Age of Camelot". */
   name: string;
   /** Entry id read aloud when this age starts. Usually 1000, 2000, 3000, etc. */
-  startPassage: string;
+  startPassage?: string;
   /**
    * Base number added to a Milieu card's terrain offset to form the passage id.
    * e.g. milieuBase 2200 + Strange Beast mountain offset 29 = passage 2229.
@@ -306,7 +307,7 @@ export type Quest = {
   passage: string;
 };
 
-export type BookStructure = {
+export type BookComponents = {
   ages: Age[];
   terrains?: Terrain[];
   features?: Feature[];
@@ -327,15 +328,16 @@ export type BookManifest = {
   version?: string;
   description?: string;
   /**
-   * Either the filename of a separate JSON entries file (relative to
-   * book.json), or an inline map of entry id → Entry.
+   * The book's entries — either inline (array or id→Entry map) or the
+   * filename of a separate JSON file (relative to book.json).
    */
-  entries: string | Record<string, Entry>;
+  entries: string | Entry[] | Record<string, Entry>;
   /**
-   * Optional game structure — lets the reader guide the player to the
-   * correct passage based on the encounter card they drew.
+   * Filename of the board game components file (relative to book.json).
+   * Omit for books with no encounter-picker structure.
+   * Multiple books can share the same components file.
    */
-  structure?: BookStructure;
+  components?: string;
 };
 
 // --- Loaded book -----------------------------------------------------------
@@ -343,6 +345,7 @@ export type BookManifest = {
 export type Book = {
   manifest: BookManifest;
   entries: Record<string, Entry>;
+  components?: BookComponents;
   source: BookSource;
 };
 

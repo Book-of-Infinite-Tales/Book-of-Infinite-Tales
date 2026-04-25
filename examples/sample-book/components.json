@@ -1,0 +1,43 @@
+{
+  "ages": [
+    { "id": "1", "name": "Golden Age of Camelot", "startPassage": "1000", "milieuBase": 1300 },
+    { "id": "2", "name": "Quest of the Holy Grail", "startPassage": "2000", "milieuBase": 2300 }
+  ],
+  "terrains": [
+    { "id": "forest", "name": "Forest" },
+    { "id": "mountain", "name": "Mountain" },
+    { "id": "plains", "name": "Plains" },
+    { "id": "city", "name": "City" }
+  ],
+  "features": [
+    { "id": "amorous", "name": "Amorous", "offset": 5 },
+    { "id": "lost", "name": "Lost", "offset": 12 }
+  ],
+  "characters": [
+    { "id": "hermit", "name": "The Hermit", "base": 1200 }
+  ],
+  "locations": [
+    {
+      "id": "hermits-clearing",
+      "name": "The Hermit's Clearing",
+      "passage": "1234",
+      "visitPassages": { "1": "1240", "2": "2240" }
+    }
+  ],
+  "milieus": [
+    {
+      "id": "strange-beast",
+      "name": "Strange Beast",
+      "terrainOffsets": {
+        "city":     25,
+        "forest":   26,
+        "mountain": 29,
+        "plains":   22
+      }
+    }
+  ],
+  "quests": [
+    { "id": "seek-the-hermit", "name": "Seek the Hermit's Blessing", "passage": "1800" }
+  ],
+  "epiloguePassage": "9999"
+}

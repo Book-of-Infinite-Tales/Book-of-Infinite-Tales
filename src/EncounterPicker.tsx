@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Book, BookStructure } from './types';
+import type { Book, BookComponents } from './types';
 import { formatSource } from './loader';
 
 type EncounterType = 'character' | 'location' | 'milieu' | 'quest';
@@ -13,7 +13,7 @@ export function EncounterPicker({
   onSelect: (entryId: string, encounterLabel?: string) => void;
   onClose: () => void;
 }) {
-  const structure = book.manifest.structure;
+  const structure = book.components;
   const [selectedAge, setSelectedAge] = useState<string | null>(
     structure?.ages[0]?.id ?? null,
   );
@@ -160,11 +160,11 @@ export function EncounterPicker({
             </button>
           )}
         </div>
-        {currentAge && (
+        {currentAge?.startPassage && (
           <div className="picker-subaction">
             <button
               className="link-button"
-              onClick={() => onSelect(currentAge.startPassage, `Start of ${currentAge.name}`)}
+              onClick={() => onSelect(currentAge.startPassage!, `Start of ${currentAge.name}`)}
             >
               Start the {currentAge.name} →
             </button>
@@ -229,7 +229,7 @@ function CharacterFlow({
   entryIds,
   onSelect,
 }: {
-  structure: BookStructure;
+  structure: BookComponents;
   entryIds: Set<string>;
   onSelect: (id: string, label: string) => void;
 }) {
@@ -303,7 +303,7 @@ function LocationFlow({
   onSelect,
 }: {
   age: string;
-  structure: BookStructure;
+  structure: BookComponents;
   onSelect: (id: string, label: string) => void;
 }) {
   const [locationId, setLocationId] = useState<string | null>(null);
@@ -368,7 +368,7 @@ function MilieuFlow({
   onSelect,
 }: {
   age: string;
-  structure: BookStructure;
+  structure: BookComponents;
   entryIds: Set<string>;
   onSelect: (id: string, label: string) => void;
 }) {
@@ -382,8 +382,8 @@ function MilieuFlow({
     return (
       <section className="card picker-step">
         <p className="hint">
-          This age has no <code>milieuBase</code> declared — add it to{' '}
-          <code>book.json</code> to enable milieu encounters.
+          This age has no <code>milieuBase</code> declared — add it to the
+          age in your components file to enable milieu encounters.
         </p>
       </section>
     );
@@ -450,7 +450,7 @@ function QuestFlow({
   structure,
   onSelect,
 }: {
-  structure: BookStructure;
+  structure: BookComponents;
   onSelect: (id: string, label: string) => void;
 }) {
   const quests = structure.quests ?? [];
