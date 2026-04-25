@@ -394,51 +394,36 @@ function PlaceOfPowerFlow({
   entryIds: Set<string>;
   onSelect: (id: string, label: string) => void;
 }) {
-  const [locationId, setLocationId] = useState<string | null>(null);
   const locations = structure.locations ?? [];
-  const chosen = locations.find((l) => l.id === locationId) ?? null;
-  const visitId = chosen?.visitPassages?.[age];
-  const visitExists = visitId ? entryIds.has(visitId) : false;
 
   return (
-    <>
-      <section className="card picker-step">
-        <h2>Location</h2>
-        <div className="button-grid">
-          {locations.map((l) => (
+    <section className="card picker-step">
+      <h2>Location</h2>
+      <div className="button-grid">
+        {locations.map((l) => {
+          const visitId = l.visitPassages?.[age];
+          const exists = visitId ? entryIds.has(visitId) : false;
+          return (
             <button
               key={l.id}
-              className={l.id === locationId ? 'pill pill--active' : 'pill'}
-              onClick={() => setLocationId(l.id)}
-            >
-              {l.name}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {chosen && (
-        <section className="card picker-step">
-          <div className="button-row">
-            <button
               className="pill"
-              disabled={!visitExists}
-              onClick={() => visitExists && visitId && onSelect(visitId, `Place of Power — ${chosen.name}`)}
+              disabled={!exists}
+              onClick={() => exists && visitId && onSelect(visitId, `Place of Power — ${l.name}`)}
               title={
                 !visitId
                   ? 'No visit passage declared for this age'
-                  : !visitExists
+                  : !exists
                     ? `Passage ${visitId} not in this book`
-                    : `Place of Power — ${chosen.name} → ${visitId}`
+                    : `Place of Power — ${l.name} → ${visitId}`
               }
             >
-              {chosen.name}
+              {l.name}
               {visitId && <span className="pill-detail">{visitId}</span>}
             </button>
-          </div>
-        </section>
-      )}
-    </>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
