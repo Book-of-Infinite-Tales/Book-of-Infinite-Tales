@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateManifest, validateEntries, validateReward, validateComponents } from './validate';
+import { validateManifest, validateEntries, validateReward, validateComponents, validateStatusRefs } from './validate';
 import { parseGithubInput } from './loader';
 import type { BookComponents, BookManifest, Entry, ResolutionOption, Reward } from './types';
 
@@ -347,6 +347,78 @@ describe('validateComponents', () => {
       expect.fail('should have thrown');
     } catch (e) {
       expect((e as Error).message).toContain('components.');
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateStatusRefs
+// ---------------------------------------------------------------------------
+
+describe('validateStatusRefs', () => {
+  const valid = new Set(['Obsessed', 'Unhorsed', 'Blessed', 'Lost']);
+
+  it('passes when no statuses are used', () => {
+    expect(() =>
+      validateStatusRefs(entryMap(entry({ rewards: { destiny: 1 } })), valid),
+    ).not.toThrow();
+  });
+
+  it('passes when all used status names are known', () => {
+    const e = entry({
+      rewards: { statuses: [{ action: 'gain', name: 'Obsessed' }] },
+    });
+    expect(() => validateStatusRefs(entryMap(e), valid)).not.toThrow();
+  });
+
+  it('throws when an entry reward uses an unknown status', () => {
+    const e = entry({
+      rewards: { statuses: [{ action: 'gain', name: 'Glorious' }] },
+    });
+    expect(() => validateStatusRefs(entryMap(e), valid)).toThrow(/unknown status "Glorious"/);
+  });
+
+  it('throws when a resolution success reward uses an unknown status', () => {
+    const e = entry({
+      resolutions: [{
+        using: ['Piety'],
+        target: 3,
+        success: { body: 'ok', rewards: { statuses: [{ action: 'gain', name: 'Invincible' }] } },
+        failure: { body: 'fail' },
+      }],
+    });
+    expect(() => validateStatusRefs(entryMap(e), valid)).toThrow(/unknown status "Invincible"/);
+  });
+
+  it('throws when a resolution failure reward uses an unknown status', () => {
+    const e = entry({
+      resolutions: [{
+        using: ['Piety'],
+        target: 3,
+        success: { body: 'ok' },
+        failure: { body: 'fail', rewards: { statuses: [{ action: 'lose', name: 'Legendary' }] } },
+      }],
+    });
+    expect(() => validateStatusRefs(entryMap(e), valid)).toThrow(/unknown status "Legendary"/);
+  });
+
+  it('passes for a lose action on a known status', () => {
+    const e = entry({
+      rewards: { statuses: [{ action: 'lose', name: 'Lost' }] },
+    });
+    expect(() => validateStatusRefs(entryMap(e), valid)).not.toThrow();
+  });
+
+  it('collects errors across multiple entries', () => {
+    const a = entry({ id: '1', rewards: { statuses: [{ action: 'gain', name: 'Glorious' }] } });
+    const b = entry({ id: '2', rewards: { statuses: [{ action: 'gain', name: 'Invincible' }] } });
+    try {
+      validateStatusRefs(entryMap(a, b), valid);
+      expect.fail('should have thrown');
+    } catch (e) {
+      const msg = (e as Error).message;
+      expect(msg).toContain('"Glorious"');
+      expect(msg).toContain('"Invincible"');
     }
   });
 });

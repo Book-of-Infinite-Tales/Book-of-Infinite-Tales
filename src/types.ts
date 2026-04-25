@@ -73,6 +73,12 @@ export type StatusEffect = {
   name: string;
 };
 
+/** A status card declared in the components file. */
+export type StatusCard = {
+  id: string;
+  name: string;
+};
+
 /**
  * The reward block at the end of a resolution outcome.
  * All fields are optional — include only what applies.
@@ -315,6 +321,8 @@ export type BookComponents = {
   locations?: Location[];
   milieus?: Milieu[];
   quests?: Quest[];
+  /** Fixed set of status cards for this game. When present, status names in rewards are validated against this list. */
+  statuses?: StatusCard[];
   /** Entry id read at the very end of the game — shown alongside the age buttons. */
   epiloguePassage?: string;
 };

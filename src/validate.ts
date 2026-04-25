@@ -172,3 +172,40 @@ export function validateComponents(s: BookComponents, entryIds: Set<string>): vo
     throw new Error(`Book components validation failed:\n• ${errors.join('\n• ')}`);
   }
 }
+
+/**
+ * When the components file declares a fixed set of status cards, validate
+ * that every status name used in rewards across all entries is in that set.
+ */
+export function validateStatusRefs(
+  entries: Record<string, Entry>,
+  validNames: Set<string>,
+): void {
+  const errors: string[] = [];
+
+  for (const [id, entry] of Object.entries(entries)) {
+    checkStatusReward(id, 'rewards', entry.rewards, validNames, errors);
+    for (const res of entry.resolutions ?? []) {
+      checkStatusReward(id, 'resolution success', res.success?.rewards, validNames, errors);
+      checkStatusReward(id, 'resolution failure', res.failure?.rewards, validNames, errors);
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`Unknown status names:\n• ${errors.join('\n• ')}`);
+  }
+}
+
+function checkStatusReward(
+  entryId: string,
+  location: string,
+  reward: Reward | undefined,
+  validNames: Set<string>,
+  errors: string[],
+): void {
+  for (const s of reward?.statuses ?? []) {
+    if (!validNames.has(s.name)) {
+      errors.push(`Entry "${entryId}" ${location}: unknown status "${s.name}".`);
+    }
+  }
+}
