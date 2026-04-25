@@ -41,7 +41,7 @@ function stripGit(repo: string): string {
 }
 
 function rawUrl(source: BookSource, file: string): string {
-  const ref = source.ref ?? 'HEAD';
+  const ref = source.ref ?? 'main';
   const dir = source.path ? `${source.path.replace(/\/$/, '')}/` : '';
   return `${RAW_BASE}/${source.owner}/${source.repo}/${ref}/${dir}${file}`;
 }
