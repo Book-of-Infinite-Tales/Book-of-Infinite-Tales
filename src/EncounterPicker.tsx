@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Book, BookComponents } from './types';
 import { formatSource } from './loader';
 
-type EncounterType = 'character' | 'location' | 'milieu' | 'quest';
+type EncounterType = 'character' | 'location' | 'milieu' | 'quest' | 'placeOfPower';
 
 export function EncounterPicker({
   book,
@@ -87,11 +87,25 @@ export function EncounterPicker({
               onClick={() => setEncounterType('milieu')}
               label="Milieu"
             />
+          </div>
+        </section>
+      )}
+
+      {currentAge && (
+        <section className="card picker-step">
+          <h2>Special Encounters</h2>
+          <div className="button-row">
             <TypeButton
               active={encounterType === 'quest'}
               disabled={!structure.quests?.length}
               onClick={() => setEncounterType('quest')}
               label="Quest"
+            />
+            <TypeButton
+              active={encounterType === 'placeOfPower'}
+              disabled={!structure.locations?.length}
+              onClick={() => setEncounterType('placeOfPower')}
+              label="Place of Power"
             />
           </div>
         </section>
@@ -107,6 +121,14 @@ export function EncounterPicker({
 
       {currentAge && encounterType === 'location' && (
         <LocationFlow
+          structure={structure}
+          entryIds={new Set(Object.keys(book.entries))}
+          onSelect={onSelect}
+        />
+      )}
+
+      {currentAge && encounterType === 'placeOfPower' && (
+        <PlaceOfPowerFlow
           age={selectedAge!}
           structure={structure}
           entryIds={new Set(Object.keys(book.entries))}
@@ -303,16 +325,14 @@ function CharacterFlow({
 }
 
 // ---------------------------------------------------------------------------
-// Location flow: pick location → regular passage or visit-place-of-power
+// Location flow: pick location → navigate to its regular passage
 // ---------------------------------------------------------------------------
 
 function LocationFlow({
-  age,
   structure,
   entryIds,
   onSelect,
 }: {
-  age: string;
   structure: BookComponents;
   entryIds: Set<string>;
   onSelect: (id: string, label: string) => void;
@@ -320,9 +340,7 @@ function LocationFlow({
   const [locationId, setLocationId] = useState<string | null>(null);
   const locations = structure.locations ?? [];
   const chosen = locations.find((l) => l.id === locationId) ?? null;
-  const visitId = chosen?.visitPassages?.[age];
   const passageExists = chosen ? entryIds.has(chosen.passage) : false;
-  const visitExists = visitId ? entryIds.has(visitId) : false;
 
   return (
     <>
@@ -344,17 +362,64 @@ function LocationFlow({
 
       {chosen && (
         <section className="card picker-step">
-          <h2>Read which passage?</h2>
           <div className="button-row">
             <button
               className="pill"
               disabled={!passageExists}
               onClick={() => passageExists && onSelect(chosen.passage, chosen.name)}
-              title={passageExists ? undefined : `Passage ${chosen.passage} not in this book`}
+              title={passageExists ? `${chosen.name} → ${chosen.passage}` : `Passage ${chosen.passage} not in this book`}
             >
-              Location passage
+              {chosen.name}
               <span className="pill-detail">{chosen.passage}</span>
             </button>
+          </div>
+        </section>
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Place of Power flow: pick location → navigate to age-specific visit passage
+// ---------------------------------------------------------------------------
+
+function PlaceOfPowerFlow({
+  age,
+  structure,
+  entryIds,
+  onSelect,
+}: {
+  age: string;
+  structure: BookComponents;
+  entryIds: Set<string>;
+  onSelect: (id: string, label: string) => void;
+}) {
+  const [locationId, setLocationId] = useState<string | null>(null);
+  const locations = structure.locations ?? [];
+  const chosen = locations.find((l) => l.id === locationId) ?? null;
+  const visitId = chosen?.visitPassages?.[age];
+  const visitExists = visitId ? entryIds.has(visitId) : false;
+
+  return (
+    <>
+      <section className="card picker-step">
+        <h2>Location</h2>
+        <div className="button-grid">
+          {locations.map((l) => (
+            <button
+              key={l.id}
+              className={l.id === locationId ? 'pill pill--active' : 'pill'}
+              onClick={() => setLocationId(l.id)}
+            >
+              {l.name}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {chosen && (
+        <section className="card picker-step">
+          <div className="button-row">
             <button
               className="pill"
               disabled={!visitExists}
@@ -364,10 +429,10 @@ function LocationFlow({
                   ? 'No visit passage declared for this age'
                   : !visitExists
                     ? `Passage ${visitId} not in this book`
-                    : `Visit the Place of Power (${visitId})`
+                    : `Place of Power — ${chosen.name} → ${visitId}`
               }
             >
-              Visit the Place of Power
+              {chosen.name}
               {visitId && <span className="pill-detail">{visitId}</span>}
             </button>
           </div>
