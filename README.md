@@ -1,85 +1,74 @@
 # Book of Infinite Tales
 
-A community reader for custom encounter books inspired by the board game *Tales of the Arthurian Knights*.
+A community reader for custom Books of Tales inspired by the board game *Tales of the Arthurian Knights*.
 
-This app is a navigation-only encounter resolver. You paste a GitHub repo URL and it fetches a **Book of Tales** manifest from that repo, then lets you read entries and follow choices.
+Load a public GitHub repo — the app fetches its `book.json` and lets you read passages and follow choices through encounters. No state tracking, no official content — the app ships empty.
 
-- No state tracking. The app does not track knight stats, virtue/sin, items, or quest flags — it only resolves paragraphs and choices.
-- No official content. This project ships empty. The official *Book of Tales* is copyrighted by WizKids and is **not** included or endorsed. Only user-authored books are loaded at runtime. Book authors are responsible for the content they publish.
+- **No state tracking.** The app resolves passages and choices only. Knight stats, virtue/sin, items, and quest flags are tracked by the players at the table.
+- **No official content.** The official *Book of Tales* is © WizKids and is not included or endorsed. Only user-authored books are loaded at runtime.
 
 ## Run locally
 
 ```
 npm install
-npm run dev
+npm run dev       # dev server at http://localhost:5173
+npm run build     # production build
+npm run typecheck # type-check only
+npm test          # unit tests (Vitest)
 ```
 
-Build: `npm run build`. Typecheck: `npm run typecheck`.
+## Book format
 
-## Book format (`book-of-infinite-tales/v1`)
+A Book of Tales is a public GitHub repo containing a `book.json` at the root (or in a subdirectory). See the [Book of Tales Template](https://github.com/RobMcA/Book-of-Tales-Template) to start your own, and the [book-of-tales-example](https://github.com/RobMcA/book-of-tales-example) for full format documentation.
 
-A book is a public GitHub repo containing a `book.json` manifest at the root (or at a subdirectory — see "Loading" below).
+### Quick reference
 
-### `book.json`
-
+**`book.json`** — the book itself:
 ```json
 {
   "schema": "book-of-infinite-tales/v1",
-  "title": "The Hermit's Clearing",
+  "title": "My Book of Tales",
   "author": "Your Name",
   "version": "1.0.0",
-  "description": "Optional short blurb",
-  "entries": "entries.json"
+  "description": "One sentence.",
+  "components": "tales-of-the-arthurian-knights-components.json",
+  "entries": [
+    { "id": "1000", "title": "Age 1 Begins", "body": "..." },
+    { "id": "1234", "body": "...", "responses": [...] },
+    { "id": "1235", "body": "...", "resolutions": [...] }
+  ]
 }
 ```
 
-- `schema` — must be exactly `"book-of-infinite-tales/v1"`.
-- `entries` — either the filename of a JSON file containing your entries, **or** an inline object keyed by entry id.
-
-### Entries file
-
-An array of entry objects (or an object keyed by id):
-
+**`components.json`** (or any filename) — the game's physical components:
 ```json
-[
-  {
-    "id": "1",
-    "title": "A Clearing in the Wood",
-    "body": "You come upon a mossy clearing...\n\nDouble newlines start a new paragraph.",
-    "choices": [
-      { "label": "Sit and share his meal.", "goto": "2" },
-      { "label": "Ask his name.", "goto": "3" }
-    ]
-  }
-]
+{
+  "ages": [...], "terrains": [...], "features": [...],
+  "characters": [...], "locations": [...], "milieus": [...],
+  "quests": [...], "skills": [...], "statuses": [...], "storyTokens": [...]
+}
 ```
 
-- `id` — any string; numeric ids sort naturally in the entry picker.
-- `title` — optional.
-- `body` — prose. Split paragraphs with blank lines (`\n\n`).
-- `choices` — optional array. `goto` must reference another entry's id. Entries without choices are terminal.
-
-See [`examples/sample-book`](examples/sample-book) for a working example.
+For a collection of multiple Books of Tales in one repo, use a `books.json` index at the root instead.
 
 ## Loading
 
-Enter any of these formats in the loader:
+Enter any of these in the loader:
 
-- `owner/repo`
-- `owner/repo@branch-or-tag`
-- `owner/repo@ref/path/to/book-dir`
-- `https://github.com/owner/repo`
-- `https://github.com/owner/repo/tree/branch/path/to/book-dir`
+```
+owner/repo
+owner/repo@branch
+owner/repo@ref/path/to/book-dir
+https://github.com/owner/repo
+https://github.com/owner/repo/tree/branch/path
+```
 
-The repo must be public. Files are fetched via `raw.githubusercontent.com` — no GitHub auth is used.
+The repo must be public. Files are fetched via `raw.githubusercontent.com` — no GitHub auth required.
 
-## Publishing a book
+## Contributing a book
 
-1. Create a public GitHub repo.
-2. Add a `book.json` at the root (or in a subdirectory).
-3. Add your entries as a separate JSON file referenced by the manifest, or inline in the manifest.
-4. Share the repo with players — they paste `owner/repo` into the app.
+Submit your Book of Tales to the [Library of Infinite Tales](https://github.com/RobMcA/Library-of-Infinite-Tales) to have it appear in the community section of the reader.
 
 ## License
 
-MIT for the app code. Book content loaded at runtime is the property of its author(s).
+MIT — see [LICENSE.md](LICENSE.md). Book content loaded at runtime is the property of its respective author(s).
