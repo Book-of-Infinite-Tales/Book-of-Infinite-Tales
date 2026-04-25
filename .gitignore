@@ -7,4 +7,4 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 *.log
-local-docs
+local-docstsconfig*.tsbuildinfo
