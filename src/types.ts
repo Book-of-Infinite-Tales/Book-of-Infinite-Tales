@@ -87,6 +87,16 @@ export type StatusCard = {
 };
 
 /**
+ * A story token declared in the components file.
+ * Tokens are numbered 1–N. `note` captures any printed effect on the token
+ * (e.g. "Move 1", "Passage 2134", "Age 3 → Token 6") for reference.
+ */
+export type StoryToken = {
+  number: number;
+  note?: string;
+};
+
+/**
  * The reward block at the end of a resolution outcome.
  * All fields are optional — include only what applies.
  */
@@ -105,8 +115,8 @@ export type Reward = {
    */
   treasures?: number | string;
   statuses?: StatusEffect[];
-  /** Story token gained (provide the token's name). */
-  storyToken?: string;
+  /** Story token gained (provide the token number). */
+  storyToken?: number;
   /** Bonus map movement after the encounter. `"free"` = unrestricted. */
   movement?: number | 'free';
 };
@@ -330,6 +340,8 @@ export type BookComponents = {
   quests?: Quest[];
   /** Fixed set of skills for this game. When present, skill names in resolutions and rewards are validated against this list. */
   skills?: Skill[];
+  /** Fixed set of story tokens for this game. When present, token numbers in rewards are validated against this list. */
+  storyTokens?: StoryToken[];
   /** Fixed set of status cards for this game. When present, status names in rewards are validated against this list. */
   statuses?: StatusCard[];
   /** Entry id read at the very end of the game — shown alongside the age buttons. */

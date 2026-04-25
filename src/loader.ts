@@ -8,7 +8,7 @@ import type {
   ResolutionTarget,
 } from './types';
 import { INDEX_SCHEMA_VERSION } from './types';
-import { validateComponents, validateEntries, validateManifest, validateSkillRefs, validateStatusRefs } from './validate';
+import { validateComponents, validateEntries, validateManifest, validateSkillRefs, validateStatusRefs, validateStoryTokenRefs } from './validate';
 
 const RAW_BASE = 'https://raw.githubusercontent.com';
 
@@ -171,6 +171,9 @@ async function finishLoadingBook(source: BookSource, manifestResp: Response): Pr
     }
     if (components.statuses && components.statuses.length > 0) {
       validateStatusRefs(entries, new Set(components.statuses.map((s) => s.name)));
+    }
+    if (components.storyTokens && components.storyTokens.length > 0) {
+      validateStoryTokenRefs(entries, new Set(components.storyTokens.map((t) => t.number)));
     }
   }
 

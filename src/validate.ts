@@ -247,6 +247,42 @@ export function validateStatusRefs(
   }
 }
 
+/**
+ * When the components file declares story tokens, validate that every token
+ * number used in rewards is in the declared set.
+ */
+export function validateStoryTokenRefs(
+  entries: Record<string, Entry>,
+  validNumbers: Set<number>,
+): void {
+  const errors: string[] = [];
+
+  for (const [id, entry] of Object.entries(entries)) {
+    checkTokenReward(id, 'rewards', entry.rewards, validNumbers, errors);
+    for (const res of entry.resolutions ?? []) {
+      checkTokenReward(id, 'resolution success', res.success?.rewards, validNumbers, errors);
+      checkTokenReward(id, 'resolution failure', res.failure?.rewards, validNumbers, errors);
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`Unknown story token numbers:\n• ${errors.join('\n• ')}`);
+  }
+}
+
+function checkTokenReward(
+  entryId: string,
+  location: string,
+  reward: Reward | undefined,
+  validNumbers: Set<number>,
+  errors: string[],
+): void {
+  if (reward?.storyToken === undefined) return;
+  if (!validNumbers.has(reward.storyToken)) {
+    errors.push(`Entry "${entryId}" ${location}: unknown story token number ${reward.storyToken}.`);
+  }
+}
+
 function checkStatusReward(
   entryId: string,
   location: string,

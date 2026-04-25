@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateManifest, validateEntries, validateReward, validateComponents, validateSkillRefs, validateStatusRefs } from './validate';
+import { validateManifest, validateEntries, validateReward, validateComponents, validateSkillRefs, validateStatusRefs, validateStoryTokenRefs } from './validate';
 import { parseGithubInput } from './loader';
 import type { BookComponents, BookManifest, Entry, ResolutionOption, Reward } from './types';
 
@@ -435,6 +435,55 @@ describe('validateSkillRefs', () => {
       }],
     });
     expect(() => validateSkillRefs(entryMap(e), names, cats)).toThrow(/unknown skill name "Jousting"/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateStoryTokenRefs
+// ---------------------------------------------------------------------------
+
+describe('validateStoryTokenRefs', () => {
+  const valid = new Set([1, 2, 3, 11, 25]);
+
+  it('passes when no story tokens are used', () => {
+    expect(() => validateStoryTokenRefs(entryMap(entry()), valid)).not.toThrow();
+  });
+
+  it('passes for a known token number in an entry reward', () => {
+    expect(() =>
+      validateStoryTokenRefs(entryMap(entry({ rewards: { storyToken: 1 } })), valid),
+    ).not.toThrow();
+  });
+
+  it('throws for an unknown token number', () => {
+    expect(() =>
+      validateStoryTokenRefs(entryMap(entry({ rewards: { storyToken: 99 } })), valid),
+    ).toThrow(/unknown story token number 99/);
+  });
+
+  it('validates token numbers in resolution outcomes', () => {
+    const e = entry({
+      resolutions: [{
+        using: ['Piety'],
+        target: 3,
+        success: { body: 'ok', rewards: { storyToken: 42 } },
+        failure: { body: 'fail' },
+      }],
+    });
+    expect(() => validateStoryTokenRefs(entryMap(e), valid)).toThrow(/unknown story token number 42/);
+  });
+
+  it('collects errors across multiple entries', () => {
+    const a = entry({ id: '1', rewards: { storyToken: 98 } });
+    const b = entry({ id: '2', rewards: { storyToken: 99 } });
+    try {
+      validateStoryTokenRefs(entryMap(a, b), valid);
+      expect.fail('should have thrown');
+    } catch (e) {
+      const msg = (e as Error).message;
+      expect(msg).toContain('98');
+      expect(msg).toContain('99');
+    }
   });
 });
 

@@ -264,7 +264,7 @@
             "rewards": {
               "destiny": "location_number",
               "renown": [{ "type": "Divinity", "delta": 2 }],
-              "storyToken": "Vision of the Tower"
+              "storyToken": 1
             }
           },
           "failure": {
@@ -402,7 +402,7 @@
             "rewards": {
               "destiny": "location_number",
               "renown": [{ "type": "Divinity", "delta": 2 }],
-              "storyToken": "The White Feather"
+              "storyToken": 2
             }
           },
           "failure": {
