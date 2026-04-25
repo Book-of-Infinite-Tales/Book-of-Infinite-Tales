@@ -161,16 +161,10 @@ export function validateComponents(s: BookComponents, entryIds: Set<string>): vo
     }
   }
 
-  for (const loc of s.locations ?? []) {
-    checkEntry(`components.locations[${loc.id}].passage`, loc.passage);
-    for (const [ageId, passage] of Object.entries(loc.visitPassages ?? {})) {
-      checkEntry(`components.locations[${loc.id}].visitPassages[${ageId}]`, passage);
-    }
-  }
-
-  for (const q of s.quests ?? []) {
-    checkEntry(`components.quests[${q.id}].passage`, q.passage);
-  }
+  // Location and quest passages are optional implementations — a book may
+  // cover only a subset of the game's locations and quests. The picker
+  // disables buttons for passages not present in the book, mirroring the
+  // same pattern used for milieu terrain offsets.
 
   checkEntry('components.epiloguePassage', s.epiloguePassage);
 

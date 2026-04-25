@@ -293,31 +293,19 @@ describe('validateComponents', () => {
     ).not.toThrow();
   });
 
-  it('throws when location passage references unknown entry', () => {
+  it('accepts locations with passages not yet in the book', () => {
     expect(() =>
       validateComponents(
         components({
           ages: [{ id: '1', name: 'Age 1', startPassage: '1000' }],
-          locations: [{ id: 'loc1', name: 'Loc', passage: '9999999' }],
+          locations: [{ id: 'loc1', name: 'Loc', passage: '9999999', visitPassages: { '1': '8888888' } }],
         }),
         ids,
       ),
-    ).toThrow(/unknown entry "9999999"/);
+    ).not.toThrow();
   });
 
-  it('throws when location visitPassage references unknown entry', () => {
-    expect(() =>
-      validateComponents(
-        components({
-          ages: [{ id: '1', name: 'Age 1' }],
-          locations: [{ id: 'loc1', name: 'Loc', passage: '1500', visitPassages: { '1': '9999999' } }],
-        }),
-        ids,
-      ),
-    ).toThrow(/unknown entry "9999999"/);
-  });
-
-  it('throws when quest passage references unknown entry', () => {
+  it('accepts quests with passages not yet in the book', () => {
     expect(() =>
       validateComponents(
         components({
@@ -326,7 +314,7 @@ describe('validateComponents', () => {
         }),
         ids,
       ),
-    ).toThrow(/unknown entry "9999999"/);
+    ).not.toThrow();
   });
 
   it('throws when epiloguePassage references unknown entry', () => {

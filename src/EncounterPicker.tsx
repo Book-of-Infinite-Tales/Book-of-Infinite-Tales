@@ -106,7 +106,12 @@ export function EncounterPicker({
       )}
 
       {currentAge && encounterType === 'location' && (
-        <LocationFlow age={selectedAge!} structure={structure} onSelect={onSelect} />
+        <LocationFlow
+          age={selectedAge!}
+          structure={structure}
+          entryIds={new Set(Object.keys(book.entries))}
+          onSelect={onSelect}
+        />
       )}
 
       {currentAge && encounterType === 'milieu' && (
@@ -119,7 +124,11 @@ export function EncounterPicker({
       )}
 
       {currentAge && encounterType === 'quest' && (
-        <QuestFlow structure={structure} onSelect={onSelect} />
+        <QuestFlow
+          structure={structure}
+          entryIds={new Set(Object.keys(book.entries))}
+          onSelect={onSelect}
+        />
       )}
 
       <section className="card picker-step">
@@ -300,16 +309,20 @@ function CharacterFlow({
 function LocationFlow({
   age,
   structure,
+  entryIds,
   onSelect,
 }: {
   age: string;
   structure: BookComponents;
+  entryIds: Set<string>;
   onSelect: (id: string, label: string) => void;
 }) {
   const [locationId, setLocationId] = useState<string | null>(null);
   const locations = structure.locations ?? [];
   const chosen = locations.find((l) => l.id === locationId) ?? null;
   const visitId = chosen?.visitPassages?.[age];
+  const passageExists = chosen ? entryIds.has(chosen.passage) : false;
+  const visitExists = visitId ? entryIds.has(visitId) : false;
 
   return (
     <>
@@ -333,18 +346,25 @@ function LocationFlow({
         <section className="card picker-step">
           <h2>Read which passage?</h2>
           <div className="button-row">
-            <button className="pill" onClick={() => onSelect(chosen.passage, chosen.name)}>
+            <button
+              className="pill"
+              disabled={!passageExists}
+              onClick={() => passageExists && onSelect(chosen.passage, chosen.name)}
+              title={passageExists ? undefined : `Passage ${chosen.passage} not in this book`}
+            >
               Location passage
               <span className="pill-detail">{chosen.passage}</span>
             </button>
             <button
               className="pill"
-              disabled={!visitId}
-              onClick={() => visitId && onSelect(visitId, `Place of Power — ${chosen.name}`)}
+              disabled={!visitExists}
+              onClick={() => visitExists && visitId && onSelect(visitId, `Place of Power — ${chosen.name}`)}
               title={
-                visitId
-                  ? `Visit the Place of Power (${visitId})`
-                  : 'No visit passage declared for this age'
+                !visitId
+                  ? 'No visit passage declared for this age'
+                  : !visitExists
+                    ? `Passage ${visitId} not in this book`
+                    : `Visit the Place of Power (${visitId})`
               }
             >
               Visit the Place of Power
@@ -448,9 +468,11 @@ function MilieuFlow({
 
 function QuestFlow({
   structure,
+  entryIds,
   onSelect,
 }: {
   structure: BookComponents;
+  entryIds: Set<string>;
   onSelect: (id: string, label: string) => void;
 }) {
   const quests = structure.quests ?? [];
@@ -459,12 +481,21 @@ function QuestFlow({
     <section className="card picker-step">
       <h2>Quest</h2>
       <div className="button-grid">
-        {quests.map((q) => (
-          <button key={q.id} className="pill" onClick={() => onSelect(q.passage, q.name)}>
-            {q.name}
-            <span className="pill-detail">{q.passage}</span>
-          </button>
-        ))}
+        {quests.map((q) => {
+          const exists = entryIds.has(q.passage);
+          return (
+            <button
+              key={q.id}
+              className="pill"
+              disabled={!exists}
+              onClick={() => exists && onSelect(q.passage, q.name)}
+              title={exists ? `${q.name} → ${q.passage}` : `Passage ${q.passage} not in this book`}
+            >
+              {q.name}
+              <span className="pill-detail">{q.passage}</span>
+            </button>
+          );
+        })}
       </div>
     </section>
   );
