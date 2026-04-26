@@ -7,6 +7,7 @@ export type LibraryEntry = {
   source: BookSource;
   title: string;
   addedAt: number;
+  aiGenerated?: boolean;
 };
 
 export function readLibrary(): LibraryEntry[] {

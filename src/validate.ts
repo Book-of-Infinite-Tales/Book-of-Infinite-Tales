@@ -248,6 +248,41 @@ export function validateStatusRefs(
 }
 
 /**
+ * When the components file declares treasures, validate that every named
+ * treasure string in rewards refers to a declared treasure name.
+ */
+export function validateTreasureRefs(
+  entries: Record<string, Entry>,
+  validNames: Set<string>,
+): void {
+  const errors: string[] = [];
+
+  for (const [id, entry] of Object.entries(entries)) {
+    checkTreasureReward(id, 'rewards', entry.rewards, validNames, errors);
+    for (const res of entry.resolutions ?? []) {
+      checkTreasureReward(id, 'resolution success', res.success?.rewards, validNames, errors);
+      checkTreasureReward(id, 'resolution failure', res.failure?.rewards, validNames, errors);
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`Unknown treasure names:\n• ${errors.join('\n• ')}`);
+  }
+}
+
+function checkTreasureReward(
+  entryId: string,
+  location: string,
+  reward: Reward | undefined,
+  validNames: Set<string>,
+  errors: string[],
+): void {
+  if (typeof reward?.treasures === 'string' && !validNames.has(reward.treasures)) {
+    errors.push(`Entry "${entryId}" ${location}: unknown treasure "${reward.treasures}".`);
+  }
+}
+
+/**
  * When the components file declares story tokens, validate that every token
  * number used in rewards is in the declared set.
  */

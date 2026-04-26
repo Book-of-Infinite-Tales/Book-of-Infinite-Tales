@@ -74,7 +74,10 @@ export function Reader({
           </button>
         )}
         <div className="reader-title">
-          <h1>{book.manifest.title}</h1>
+          <h1>
+            {book.manifest.title}
+            {book.manifest.aiGenerated && <span className="ai-badge">AI Generated</span>}
+          </h1>
           <span className="reader-source">{formatSource(book.source)}</span>
         </div>
       </header>

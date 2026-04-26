@@ -39,7 +39,7 @@ export function App() {
       if (result.kind === 'book') {
         setBook(result.book);
         setLibrary(
-          saveToLibrary({ source, title: result.book.manifest.title, addedAt: Date.now() }),
+          saveToLibrary({ source, title: result.book.manifest.title, addedAt: Date.now(), aiGenerated: result.book.manifest.aiGenerated }),
         );
         setMode('picker');
       } else {
@@ -60,7 +60,7 @@ export function App() {
       const loaded = await loadBook(source);
       setBook(loaded);
       setLibrary(
-        saveToLibrary({ source, title: loaded.manifest.title, addedAt: Date.now() }),
+        saveToLibrary({ source, title: loaded.manifest.title, addedAt: Date.now(), aiGenerated: loaded.manifest.aiGenerated }),
       );
       setMode('picker');
     } catch (e) {
@@ -294,7 +294,10 @@ function LibraryRow({
   return (
     <li className="library-row">
       <button className="library-open" onClick={onOpen}>
-        <span className="library-title">{entry.title}</span>
+        <span className="library-title">
+          {entry.title}
+          {entry.aiGenerated && <span className="ai-badge">AI Generated</span>}
+        </span>
         <span className="library-source">{label}</span>
       </button>
       <button className="library-remove" onClick={onRemove} aria-label={`Remove ${entry.title}`}>

@@ -232,7 +232,10 @@ function PickerHeader({ book, onClose }: { book: Book; onClose: () => void }) {
         ← Library
       </button>
       <div className="picker-title">
-        <h1>{book.manifest.title}</h1>
+        <h1>
+          {book.manifest.title}
+          {book.manifest.aiGenerated && <span className="ai-badge">AI Generated</span>}
+        </h1>
         <span className="picker-source">{formatSource(book.source)}</span>
       </div>
     </header>

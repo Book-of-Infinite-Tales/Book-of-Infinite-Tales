@@ -381,6 +381,18 @@ code {
   font-size: 1.3rem;
   flex: 1;
 }
+.ai-badge {
+  font-size: 0.7rem;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1rem 0.45rem;
+  margin-left: 0.6rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
 .romantic-badge {
   font-size: 0.8rem;
   color: var(--romantic);
