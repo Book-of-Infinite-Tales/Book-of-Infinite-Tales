@@ -2,6 +2,7 @@
   "name": "book-of-infinite-tales",
   "private": true,
   "version": "0.1.0",
+  "description": "Community reader for user-authored Books of Tales supplements for Tales of the Arthurian Knights",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -10,7 +10,7 @@ npm run build      # tsc -b then vite build
 npm run typecheck  # type-check only, no emit
 ```
 
-There are no tests — `typecheck` is the only automated check.
+Run `npm test` (Vitest) for unit tests, or `npm run typecheck` for type-checking only.
 
 ## What this app is
 
