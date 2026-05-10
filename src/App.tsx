@@ -194,7 +194,7 @@ export function App() {
       <header className="home-header">
         <h1>Book of Infinite Tales</h1>
         <p className="tagline">
-          A community reader for custom Books of Tales inspired by <em>Tales of the Arthurian Knights</em>.
+          A reader for custom Book of Tales compatible with <em>Tales of the Arthurian Knights</em>.
         </p>
       </header>
 
