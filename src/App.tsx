@@ -168,7 +168,10 @@ export function App() {
                     onClick={() => handleLoad(bookSource)}
                     disabled={collectionLoading !== null}
                   >
-                    <span className="library-title">{entry.title}</span>
+                    <span className="library-title">
+                      {entry.title}
+                      {entry.aiGenerated && <span className="ai-badge">AI Generated</span>}
+                    </span>
                     {entry.description && (
                       <span className="library-source">{entry.description}</span>
                     )}
