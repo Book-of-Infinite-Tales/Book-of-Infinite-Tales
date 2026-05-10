@@ -274,7 +274,7 @@ export function App() {
             </svg>
             {' '}GitHub
           </a>
-          {' · '}© 2026 Rob McArthur · MIT License
+          {' · '}© 2026 · MIT License
         </p>
       </footer>
     </main>
