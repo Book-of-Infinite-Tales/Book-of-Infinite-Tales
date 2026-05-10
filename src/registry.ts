@@ -14,7 +14,7 @@ export type Registry = {
 };
 
 const REGISTRY_URL =
-  'https://raw.githubusercontent.com/Book-of-Infinite-Tales/Library-of-Infinite-Tales/main/registry.json';
+  'https://raw.githubusercontent.com/book-of-infinite-tales/Library-of-Infinite-Tales/main/registry.json';
 
 export async function fetchRegistry(): Promise<Registry> {
   try {
