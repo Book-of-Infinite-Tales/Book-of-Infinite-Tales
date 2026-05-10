@@ -264,7 +264,7 @@ export function App() {
         </p>
         <p className="footer-meta">
           <a
-            href="https://github.com/RobMcA/Book-of-Infinite-Tales"
+            href="https://github.com/book-of-infinite-tales/Book-of-Infinite-Tales"
             target="_blank"
             rel="noreferrer"
             className="footer-github"
