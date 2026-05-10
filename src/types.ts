@@ -415,6 +415,7 @@ export type BookIndexEntry = {
   path: string;
   title: string;
   description?: string;
+  aiGenerated?: boolean;
 };
 
 /**
