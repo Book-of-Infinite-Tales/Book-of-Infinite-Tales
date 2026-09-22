@@ -45,22 +45,35 @@ export type CheckOption = SkillName | SkillCategory | RenownType;
 // --- Resolution target -----------------------------------------------------
 
 /**
+ * A number that can grow with the board or the game:
+ * `base` plus the Location # of the knight's current space and/or the
+ * current Age # (1–3). At least one of the two flags must be set.
+ */
+export type Formula = {
+  base: number;
+  addLocationNumber?: true;
+  addAgeNumber?: true;
+};
+
+/**
  * How hard a check is.
  *   - A plain number  → fixed difficulty (roll 1d6 + Skill Rank ≥ value)
- *   - Object form     → variable: difficulty = base + the space's Location #
+ *   - Formula         → variable: base + Location # and/or Age #
  *
  * For renown checks there is no die roll — the player just needs that many
  * accumulated Ranks in the renown type.
  */
-export type ResolutionTarget =
-  | number
-  | { base: number; addLocationNumber: true };
+export type ResolutionTarget = number | Formula;
 
 // --- Rewards ---------------------------------------------------------------
 
-/** A gain or loss of renown ranks. Negative delta = lose ranks. */
+/**
+ * A gain or loss of renown ranks. Negative delta = lose ranks.
+ * `type` may be a list of tracks for "2 Ranks of Divinity or Romance":
+ * the player applies the whole delta to one track of their choice.
+ */
 export type RenownDelta = {
-  type: RenownType;
+  type: RenownType | RenownType[];
   /** Positive = gain ranks; negative = lose ranks. */
   delta: number;
 };
@@ -110,10 +123,13 @@ export type StoryToken = {
  */
 export type Reward = {
   /**
-   * Destiny points earned. Use `"location_number"` when the reward equals
-   * the Location # of the knight's current space.
+   * Destiny points earned.
+   *   - A number: that many points (negative = lose).
+   *   - `"location_number"`: equal to the Location # of the knight's space.
+   *   - A Formula: e.g. `{ base: 1, addLocationNumber: true }` for
+   *     "1 + Location #", or `{ base: 0, addAgeNumber: true }` for "= Age #".
    */
-  destiny?: number | 'location_number';
+  destiny?: number | 'location_number' | Formula;
   renown?: RenownDelta[];
   skills?: SkillReward[];
   /**
@@ -127,6 +143,13 @@ export type Reward = {
   storyToken?: number;
   /** Bonus map movement after the encounter. `"free"` = unrestricted. */
   movement?: number | 'free';
+  /**
+   * Any other effect, printed inside the reward bracket as written, e.g.
+   * "Place a Hunting Skill Marker on your Accompanied Status Card" or
+   * "If you are Betrothed, gain 1 Rank of Villainy". May contain passage
+   * links (`[[1234]]`).
+   */
+  notes?: string[];
 };
 
 // --- Response options (on response passages) -------------------------------
@@ -152,7 +175,10 @@ export type ResponseOption = {
  * Contains the narrative prose to read and any rewards earned.
  */
 export type ResolutionOutcome = {
-  /** Prose read aloud to describe the outcome. Use `\n\n` for paragraphs. */
+  /**
+   * Prose read aloud to describe the outcome. Use `\n\n` for paragraphs.
+   * May contain passage links (`[[1234]]` or `[[1234|link text]]`).
+   */
   body: string;
   /** Rewards applied (structured — rendered as a bracket `[…]`). */
   rewards?: Reward;
@@ -185,11 +211,26 @@ export type ResolutionOption = {
   using: CheckOption[];
   /** The difficulty to meet or exceed. */
   target: ResolutionTarget;
+  /**
+   * True when the check uses the knight's *total* in a skill category —
+   * all its skills' ranks added together — instead of a single skill.
+   * Only valid when every `using` entry is a skill category.
+   */
+  total?: boolean;
   /** Mark true if this resolution is romantic content. */
   romantic?: boolean;
   success: ResolutionOutcome;
+  /**
+   * Optional middle band between failure and success, reached with a result
+   * of at least `min` but below the target — e.g. "Romance (2–3 Ranks)"
+   * beside "Romance (4 Ranks or higher)". `min` must be below a fixed target.
+   */
+  partial?: PartialOutcome;
   failure: ResolutionOutcome;
 };
+
+/** A middle-band outcome: reached with a result ≥ `min` but below the target. */
+export type PartialOutcome = ResolutionOutcome & { min: number };
 
 // --- Entry -----------------------------------------------------------------
 
@@ -226,7 +267,12 @@ export type RetinuePresence = 'beside' | 'nearby' | 'absent';
 export type Entry = {
   /** Unique identifier. Numeric strings ("1", "1234") sort naturally. */
   id: string;
-  /** Prose read aloud. Use `\n\n` to separate paragraphs. */
+  /**
+   * Prose read aloud. Use `\n\n` to separate paragraphs.
+   * `[[1234]]` renders as a link to entry 1234 and `[[1234|text]]` as a link
+   * with custom text — e.g. "If you have Story Token #14, turn immediately
+   * to [[1976]]." The player decides whether the condition applies.
+   */
   body: string;
   /** True if this entry is romantic content (asterisk convention). */
   romantic?: boolean;

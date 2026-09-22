@@ -2,6 +2,7 @@ import type {
   BookManifest,
   BookComponents,
   Entry,
+  Formula,
   ResolutionOption,
   ResolutionOutcome,
   ResolutionTarget,
@@ -9,6 +10,36 @@ import type {
   Reward,
 } from './types';
 import { SCHEMA_VERSION } from './types';
+import { linkTargets } from './links';
+
+const RENOWN_TYPES = ['Divinity', 'Romance', 'Villainy', 'Any'];
+const SKILL_CATEGORIES = ['Martial', 'Spiritual', 'Courtly', 'Wilderness'];
+
+/**
+ * Every reward block in an entry, with a label for error messages: the
+ * entry's own rewards and each resolution's success, partial and failure.
+ */
+export function rewardSites(entry: Entry): Array<[string, Reward | undefined]> {
+  const sites: Array<[string, Reward | undefined]> = [['rewards', entry.rewards]];
+  for (const res of entry.resolutions ?? []) {
+    sites.push(['resolution success', res.success?.rewards]);
+    if (res.partial) sites.push(['resolution partial', res.partial.rewards]);
+    sites.push(['resolution failure', res.failure?.rewards]);
+  }
+  return sites;
+}
+
+/** Report every [[link]] in `text` that points to a missing entry. */
+function checkLinks(
+  where: string,
+  text: string | undefined,
+  ids: Set<string>,
+  errors: string[],
+): void {
+  for (const id of linkTargets(text ?? '')) {
+    if (!ids.has(id)) errors.push(`${where}: link points to unknown entry "${id}".`);
+  }
+}
 
 export function validateManifest(m: BookManifest): void {
   if (m.schema !== SCHEMA_VERSION) {
@@ -32,6 +63,8 @@ export function validateEntries(entries: Record<string, Entry>): void {
     }
     if (typeof entry.body !== 'string') {
       errors.push(`Entry "${id}" is missing a body.`);
+    } else {
+      checkLinks(`Entry "${id}" body`, entry.body, ids, errors);
     }
     for (const r of entry.responses ?? []) {
       validateResponse(id, r, ids, errors);
@@ -40,6 +73,11 @@ export function validateEntries(entries: Record<string, Entry>): void {
       validateResolution(id, r, ids, errors);
     }
     if (entry.rewards) validateReward(id, entry.rewards, errors);
+    for (const [where, reward] of rewardSites(entry)) {
+      for (const note of reward?.notes ?? []) {
+        checkLinks(`Entry "${id}" ${where} note`, note, ids, errors);
+      }
+    }
     if (entry.goto && !ids.has(entry.goto)) {
       errors.push(`Entry "${id}": goto points to unknown entry "${entry.goto}".`);
     }
@@ -57,6 +95,11 @@ function validateResponse(
   errors: string[],
 ): void {
   if (!r.label) errors.push(`Entry "${entryId}": a response is missing a label.`);
+  if (r.label && linkTargets(r.label).length > 0) {
+    errors.push(
+      `Entry "${entryId}": response "${r.label}" contains a [[link]]; a response already leads to its goto.`,
+    );
+  }
   if (!r.goto) {
     errors.push(`Entry "${entryId}": response "${r.label}" is missing goto.`);
   } else if (!ids.has(r.goto)) {
@@ -75,13 +118,30 @@ function validateResolution(
   const label = r.label ?? r.using?.join(' / ') ?? '(unnamed)';
   if (!Array.isArray(r.using) || r.using.length === 0) {
     errors.push(`Entry "${entryId}": resolution "${label}" has no "using" options.`);
+  } else if (r.total && !r.using.every((u) => SKILL_CATEGORIES.includes(u))) {
+    errors.push(
+      `Entry "${entryId}": resolution "${label}" has "total": true, but a total needs skill categories in "using".`,
+    );
+  }
+  if (r.label && linkTargets(r.label).length > 0) {
+    errors.push(`Entry "${entryId}": resolution "${label}" label contains a [[link]]; put links in outcome text.`);
   }
   if (r.target === undefined || r.target === null) {
     errors.push(`Entry "${entryId}": resolution "${label}" is missing a target.`);
   } else if (!validTarget(r.target)) {
     errors.push(
-      `Entry "${entryId}": resolution "${label}" has an invalid target (must be a number or { base, addLocationNumber: true }).`,
+      `Entry "${entryId}": resolution "${label}" has an invalid target (must be a number, or { base } with addLocationNumber and/or addAgeNumber set to true).`,
     );
+  }
+  if (r.partial !== undefined) {
+    if (typeof r.partial.min !== 'number' || !Number.isFinite(r.partial.min)) {
+      errors.push(`Entry "${entryId}": resolution "${label}" partial outcome needs a numeric "min".`);
+    } else if (typeof r.target === 'number' && r.partial.min >= r.target) {
+      errors.push(
+        `Entry "${entryId}": resolution "${label}" partial "min" (${r.partial.min}) must be below the target (${r.target}).`,
+      );
+    }
+    validateOutcome(entryId, `${label} → partial`, r.partial, ids, errors);
   }
   if (!r.success) {
     errors.push(`Entry "${entryId}": resolution "${label}" is missing a success outcome.`);
@@ -97,11 +157,16 @@ function validateResolution(
 
 function validTarget(t: ResolutionTarget): boolean {
   if (typeof t === 'number') return Number.isFinite(t);
-  return (
-    typeof t === 'object' &&
-    typeof t.base === 'number' &&
-    t.addLocationNumber === true
-  );
+  return validFormula(t);
+}
+
+/** `{ base }` plus at least one of addLocationNumber / addAgeNumber set to true. */
+function validFormula(f: Formula): boolean {
+  if (typeof f !== 'object' || f === null || typeof f.base !== 'number') return false;
+  const loc = f.addLocationNumber;
+  const age = f.addAgeNumber;
+  if ((loc !== undefined && loc !== true) || (age !== undefined && age !== true)) return false;
+  return loc === true || age === true;
 }
 
 function validateOutcome(
@@ -113,6 +178,8 @@ function validateOutcome(
 ): void {
   if (typeof o.body !== 'string') {
     errors.push(`Entry "${entryId}": outcome "${label}" is missing body text.`);
+  } else {
+    checkLinks(`Entry "${entryId}" outcome "${label}"`, o.body, ids, errors);
   }
   if (o.rewards) validateReward(entryId, o.rewards, errors);
   if (o.goto && !ids.has(o.goto)) {
@@ -123,21 +190,37 @@ function validateOutcome(
 }
 
 export function validateReward(entryId: string, reward: Reward, errors: string[]): void {
-  if (reward.destiny !== undefined) {
-    if (reward.destiny !== 'location_number' && typeof reward.destiny !== 'number') {
+  const d = reward.destiny;
+  if (d !== undefined) {
+    const ok =
+      d === 'location_number' ||
+      (typeof d === 'number' && Number.isFinite(d)) ||
+      (typeof d === 'object' && validFormula(d));
+    if (!ok) {
       errors.push(
-        `Entry "${entryId}": rewards.destiny must be a number or "location_number".`,
+        `Entry "${entryId}": rewards.destiny must be a number, "location_number", or { base } with addLocationNumber and/or addAgeNumber.`,
       );
     }
   }
   if (reward.renown) {
     for (const r of reward.renown) {
-      if (!['Divinity', 'Romance', 'Villainy', 'Any'].includes(r.type)) {
-        errors.push(`Entry "${entryId}": unknown renown type "${r.type}".`);
+      const types = Array.isArray(r.type) ? r.type : [r.type];
+      if (types.length === 0) {
+        errors.push(`Entry "${entryId}": renown type list is empty.`);
+      }
+      for (const t of types) {
+        if (!RENOWN_TYPES.includes(t)) {
+          errors.push(`Entry "${entryId}": unknown renown type "${t}".`);
+        }
       }
       if (typeof r.delta !== 'number') {
         errors.push(`Entry "${entryId}": renown delta must be a number.`);
       }
+    }
+  }
+  if (reward.notes !== undefined) {
+    if (!Array.isArray(reward.notes) || reward.notes.some((n) => typeof n !== 'string' || !n.trim())) {
+      errors.push(`Entry "${entryId}": rewards.notes must be a list of non-empty strings.`);
     }
   }
 }
@@ -194,10 +277,8 @@ export function validateSkillRefs(
         }
       }
     }
-    checkSkillReward(id, 'rewards', entry.rewards, validSkillNames, validCategories, errors);
-    for (const res of entry.resolutions ?? []) {
-      checkSkillReward(id, 'resolution success', res.success?.rewards, validSkillNames, validCategories, errors);
-      checkSkillReward(id, 'resolution failure', res.failure?.rewards, validSkillNames, validCategories, errors);
+    for (const [where, reward] of rewardSites(entry)) {
+      checkSkillReward(id, where, reward, validSkillNames, validCategories, errors);
     }
   }
 
@@ -235,10 +316,8 @@ export function validateStatusRefs(
   const errors: string[] = [];
 
   for (const [id, entry] of Object.entries(entries)) {
-    checkStatusReward(id, 'rewards', entry.rewards, validNames, errors);
-    for (const res of entry.resolutions ?? []) {
-      checkStatusReward(id, 'resolution success', res.success?.rewards, validNames, errors);
-      checkStatusReward(id, 'resolution failure', res.failure?.rewards, validNames, errors);
+    for (const [where, reward] of rewardSites(entry)) {
+      checkStatusReward(id, where, reward, validNames, errors);
     }
   }
 
@@ -258,10 +337,8 @@ export function validateTreasureRefs(
   const errors: string[] = [];
 
   for (const [id, entry] of Object.entries(entries)) {
-    checkTreasureReward(id, 'rewards', entry.rewards, validNames, errors);
-    for (const res of entry.resolutions ?? []) {
-      checkTreasureReward(id, 'resolution success', res.success?.rewards, validNames, errors);
-      checkTreasureReward(id, 'resolution failure', res.failure?.rewards, validNames, errors);
+    for (const [where, reward] of rewardSites(entry)) {
+      checkTreasureReward(id, where, reward, validNames, errors);
     }
   }
 
@@ -293,10 +370,8 @@ export function validateStoryTokenRefs(
   const errors: string[] = [];
 
   for (const [id, entry] of Object.entries(entries)) {
-    checkTokenReward(id, 'rewards', entry.rewards, validNumbers, errors);
-    for (const res of entry.resolutions ?? []) {
-      checkTokenReward(id, 'resolution success', res.success?.rewards, validNumbers, errors);
-      checkTokenReward(id, 'resolution failure', res.failure?.rewards, validNumbers, errors);
+    for (const [where, reward] of rewardSites(entry)) {
+      checkTokenReward(id, where, reward, validNumbers, errors);
     }
   }
 

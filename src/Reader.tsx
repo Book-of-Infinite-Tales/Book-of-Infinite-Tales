@@ -9,7 +9,10 @@ import type {
   SkillReward,
   StatusEffect,
 } from './types';
-import { formatSource, formatTarget } from './loader';
+import { formatFormula, formatSource, formatTarget } from './loader';
+import { parseLinks } from './links';
+
+type GotoFn = (id: string) => void;
 
 export function Reader({
   book,
@@ -118,7 +121,7 @@ export function Reader({
           </div>
         )}
 
-        <Prose body={current.body} />
+        <Prose body={current.body} onGoto={goto} />
 
         {current.responses && current.responses.length > 0 && (
           <ResponseList responses={current.responses} onGoto={goto} />
@@ -128,7 +131,7 @@ export function Reader({
           <ResolutionList resolutions={current.resolutions} onGoto={goto} />
         )}
 
-        {current.rewards && <RewardBlock reward={current.rewards} />}
+        {current.rewards && <RewardBlock reward={current.rewards} onGoto={goto} />}
 
         {current.goto && (
           <div className="continue-block">
@@ -146,13 +149,38 @@ export function Reader({
 // Prose
 // ---------------------------------------------------------------------------
 
-function Prose({ body }: { body: string }) {
+function Prose({ body, onGoto }: { body: string; onGoto: GotoFn }) {
   return (
     <div className="entry-body">
       {body.split(/\n\n+/).map((para, i) => (
-        <p key={i}>{para}</p>
+        <p key={i}>
+          <LinkedText text={para} onGoto={onGoto} />
+        </p>
       ))}
     </div>
+  );
+}
+
+/** Text with `[[1234]]` / `[[1234|text]]` passage links rendered as buttons. */
+function LinkedText({ text, onGoto }: { text: string; onGoto: GotoFn }) {
+  return (
+    <>
+      {parseLinks(text).map((seg, i) =>
+        typeof seg === 'string' ? (
+          seg
+        ) : (
+          <button
+            key={i}
+            type="button"
+            className="passage-link"
+            onClick={() => onGoto(seg.id)}
+            title={`Turn to ${seg.id}`}
+          >
+            {seg.text}
+          </button>
+        ),
+      )}
+    </>
   );
 }
 
@@ -220,7 +248,8 @@ function ResolutionCard({
   onGoto: (id: string) => void;
 }) {
   const [committed, setCommitted] = useState(false);
-  const [revealed, setRevealed] = useState<'success' | 'failure' | null>(null);
+  const [revealed, setRevealed] = useState<'success' | 'partial' | 'failure' | null>(null);
+  const renownCheck = resolution.using.every((u) => RENOWN.has(u));
 
   return (
     <div
@@ -232,11 +261,20 @@ function ResolutionCard({
             *
           </span>
         )}
-        <span className="resolution-using">{resolution.using.join(' / ')}</span>
+        <span className="resolution-using">
+          {resolution.total
+            ? resolution.using.map((u) => `Total ${u} Skill`).join(' / ')
+            : resolution.using.join(' / ')}
+          {renownCheck && ' (Ranks)'}
+        </span>
         {resolution.label && (
           <span className="resolution-action"> — {resolution.label}</span>
         )}
       </div>
+
+      {resolution.total && (
+        <div className="resolution-hint">Add together your ranks in every skill of this category.</div>
+      )}
 
       {!committed ? (
         <button className="commit-button" onClick={() => setCommitted(true)}>
@@ -246,7 +284,10 @@ function ResolutionCard({
         <>
           <div className="resolution-target-row">
             <span className="target-label">Target:</span>
-            <span className="check-target">{formatTarget(resolution.target)}</span>
+            <span className="check-target">
+              {formatTarget(resolution.target)}
+              {renownCheck && ' Ranks'}
+            </span>
           </div>
 
           <div className="outcomes">
@@ -257,6 +298,16 @@ function ResolutionCard({
               onReveal={() => setRevealed('success')}
               onGoto={onGoto}
             />
+            {resolution.partial && (
+              <OutcomeCard
+                kind="partial"
+                partialLabel={`${resolution.partial.min}+${renownCheck ? ' Ranks' : ''}`}
+                outcome={resolution.partial}
+                open={revealed === 'partial'}
+                onReveal={() => setRevealed('partial')}
+                onGoto={onGoto}
+              />
+            )}
             <OutcomeCard
               kind="failure"
               outcome={resolution.failure}
@@ -271,14 +322,20 @@ function ResolutionCard({
   );
 }
 
+const OUTCOME_TITLES = { success: 'Success', partial: 'Partial', failure: 'Failure' } as const;
+const OUTCOME_ICONS = { success: '✓', partial: '◐', failure: '✗' } as const;
+
 function OutcomeCard({
   kind,
+  partialLabel,
   outcome,
   open,
   onReveal,
   onGoto,
 }: {
-  kind: 'success' | 'failure';
+  kind: 'success' | 'partial' | 'failure';
+  /** For the partial band, the range that reaches it, e.g. "2+ Ranks". */
+  partialLabel?: string;
   outcome: ResolutionOutcome;
   open: boolean;
   onReveal: () => void;
@@ -288,15 +345,17 @@ function OutcomeCard({
     <div className={`outcome outcome--${kind}${open ? ' outcome--open' : ''}`}>
       {!open ? (
         <button className={`reveal-button reveal-${kind}`} onClick={onReveal}>
-          {kind === 'success' ? 'Success' : 'Failure'}
+          {OUTCOME_TITLES[kind]}
+          {partialLabel && ` (${partialLabel})`}
         </button>
       ) : (
         <>
           <div className="outcome-header">
-            {kind === 'success' ? '✓ Success' : '✗ Failure'}
+            {OUTCOME_ICONS[kind]} {OUTCOME_TITLES[kind]}
+            {partialLabel && ` (${partialLabel})`}
           </div>
-          <Prose body={outcome.body} />
-          {outcome.rewards && <RewardBlock reward={outcome.rewards} />}
+          <Prose body={outcome.body} onGoto={onGoto} />
+          {outcome.rewards && <RewardBlock reward={outcome.rewards} onGoto={onGoto} />}
           {outcome.goto && (
             <button className="continue-button small" onClick={() => onGoto(outcome.goto!)}>
               Continue → #{outcome.goto}
@@ -312,8 +371,8 @@ function OutcomeCard({
 // Reward block
 // ---------------------------------------------------------------------------
 
-function RewardBlock({ reward }: { reward: Reward }) {
-  const items = buildRewardLines(reward);
+function RewardBlock({ reward, onGoto }: { reward: Reward; onGoto: GotoFn }) {
+  const items = [...buildRewardLines(reward), ...(reward.notes ?? [])];
   if (items.length === 0) return null;
 
   return (
@@ -322,7 +381,7 @@ function RewardBlock({ reward }: { reward: Reward }) {
       <span className="reward-inner">
         {items.map((line, i) => (
           <span key={i} className="reward-item">
-            {line}
+            <LinkedText text={line} onGoto={onGoto} />
             {i < items.length - 1 && <span className="reward-sep"> | </span>}
           </span>
         ))}
@@ -338,6 +397,8 @@ function buildRewardLines(reward: Reward): string[] {
   if (reward.destiny !== undefined) {
     if (reward.destiny === 'location_number') {
       lines.push('Gain Destiny = Location #');
+    } else if (typeof reward.destiny === 'object') {
+      lines.push(`Gain Destiny = ${formatFormula(reward.destiny)}`);
     } else if (reward.destiny < 0) {
       lines.push(`Lose ${Math.abs(reward.destiny)} Destiny`);
     } else {
@@ -370,6 +431,10 @@ function buildRewardLines(reward: Reward): string[] {
 function formatRenown(r: RenownDelta): string {
   const abs = Math.abs(r.delta);
   const ranks = `${abs} Rank${abs !== 1 ? 's' : ''}`;
+  if (Array.isArray(r.type)) {
+    const tracks = r.type.join(' or ');
+    return r.delta >= 0 ? `Gain ${ranks} of ${tracks}` : `Lose ${ranks} of ${tracks}`;
+  }
   if (r.type === 'Any') {
     return r.delta >= 0 ? `Gain ${ranks} of Renown (your choice)` : `Lose ${ranks} of Renown (your choice)`;
   }
@@ -405,6 +470,8 @@ function retinueText(presence: 'beside' | 'nearby' | 'absent'): string {
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
+
+const RENOWN: ReadonlySet<string> = new Set(['Divinity', 'Romance', 'Villainy', 'Any']);
 
 function naturalCompare(a: string, b: string): number {
   const na = Number(a);

@@ -8,9 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev        # start dev server (Vite, port 5173)
 npm run build      # tsc -b then vite build
 npm run typecheck  # type-check only, no emit
+npm test           # vitest: validation, link parsing, formatting
 ```
-
-Run `npm test` (Vitest) for unit tests, or `npm run typecheck` for type-checking only.
 
 ## What this app is
 
@@ -37,12 +36,16 @@ Maintains a `history` stack for the ← Back button. Jump-to-entry via a `<datal
 
 `types.ts` is the single source of truth for the `book-of-infinite-tales/v1` format. Key design points:
 
-- `ResolutionTarget`: either a plain number (fixed difficulty) or `{ base: number, addLocationNumber: true }` (difficulty = base + the space's Location # on the board).
-- `RenownType`: `'Divinity' | 'Romance' | 'Villainy' | 'Any'`. Use `'Any'` when the book prints "1 Rank of Renown" with no track specified (player chooses). Rendered as "Gain N Ranks of Renown (your choice)".
-- `Reward.destiny`: accepts `"location_number"` when the destiny gained equals the space's Location #.
+- `Formula`: `{ base, addLocationNumber?: true, addAgeNumber?: true }`, with at least one flag set. Used by `ResolutionTarget` (a plain number or a Formula) and `Reward.destiny` (a number, `"location_number"`, or a Formula, e.g. "1 + Location #").
+- `RenownType`: `'Divinity' | 'Romance' | 'Villainy' | 'Any'`. Use `'Any'` when the book prints "1 Rank of Renown" with no track specified (player chooses). `RenownDelta.type` may also be a list, for "2 Ranks of Divinity or Romance".
+- **Passage links**: `[[1234]]` or `[[1234|text]]` in an entry body, an outcome body or a reward note renders as a clickable link (`src/links.ts`). This is how conditional jumps work ("If you have Story Token #14, turn immediately to [[1976]]"): the player decides whether the condition applies. Links are not allowed in response or resolution labels. The validator checks every link target exists.
+- `ResolutionOption.total`: the check uses the knight's total across a skill category (`using` must be categories).
+- `ResolutionOption.partial`: an optional middle band `{ min, body, rewards?, goto? }` between failure and success, e.g. renown bands of "4+ / 2–3 / 0–1".
+- `Reward.notes`: free-text effects the structured fields can't express, printed inside the reward bracket.
 - Entries may mix `responses`, `resolutions`, `rewards`, and `goto` for non-standard passage flows.
+- `rewardSites(entry)` in `validate.ts` lists every reward block (entry, success, partial, failure). Use it when adding a validator that inspects rewards.
 
-When adding a new field to a type, also update the validation in `loader.ts` (especially the renown type allowlist at the `validateReward` function) and the renderer in `Reader.tsx`.
+When adding a new field to a type, also update the validation in `validate.ts` (especially `validateReward`), the renderer in `Reader.tsx`, and the tests.
 
 ## Book format notes (for authoring guidance)
 
