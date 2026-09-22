@@ -5,6 +5,7 @@ import type {
   BookManifest,
   BookSource,
   Entry,
+  Formula,
   ResolutionTarget,
 } from './types';
 import { INDEX_SCHEMA_VERSION } from './types';
@@ -218,5 +219,14 @@ function validateIndex(index: BookIndex): void {
 
 export function formatTarget(target: ResolutionTarget): string {
   if (typeof target === 'number') return `≥ ${target}`;
-  return `≥ ${target.base} + Location #`;
+  return `≥ ${formatFormula(target)}`;
+}
+
+/** "3 + Location #", "1 + Age #", "Location #" (when base is 0), and so on. */
+export function formatFormula(f: Formula): string {
+  const parts: string[] = [];
+  if (f.base !== 0) parts.push(String(f.base));
+  if (f.addLocationNumber) parts.push('Location #');
+  if (f.addAgeNumber) parts.push('Age #');
+  return parts.join(' + ') || '0';
 }
