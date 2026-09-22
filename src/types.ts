@@ -97,7 +97,7 @@ export type StatusCard = {
 /**
  * A story token declared in the components file.
  * Tokens are numbered 1–N. `note` captures any printed effect on the token
- * (e.g. "Move 1", "Passage 2134", "Age 3 → Token 6") for reference.
+ * (e.g. "Move 1", "Passage 2134", "Age 3: discard to treat a roll as 6") for reference.
  */
 export type StoryToken = {
   number: number;
