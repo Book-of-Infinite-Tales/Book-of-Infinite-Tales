@@ -168,7 +168,10 @@ export function App() {
                     onClick={() => handleLoad(bookSource)}
                     disabled={collectionLoading !== null}
                   >
-                    <span className="library-title">{entry.title}</span>
+                    <span className="library-title">
+                      {entry.title}
+                      {entry.aiGenerated && <span className="ai-badge">AI Generated</span>}
+                    </span>
                     {entry.description && (
                       <span className="library-source">{entry.description}</span>
                     )}
@@ -194,7 +197,7 @@ export function App() {
       <header className="home-header">
         <h1>Book of Infinite Tales</h1>
         <p className="tagline">
-          A community reader for custom Books of Tales inspired by <em>Tales of the Arthurian Knights</em>.
+          A reader for custom Book of Tales compatible with <em>Tales of the Arthurian Knights</em>.
         </p>
       </header>
 
@@ -264,7 +267,7 @@ export function App() {
         </p>
         <p className="footer-meta">
           <a
-            href="https://github.com/RobMcA/Book-of-Infinite-Tales"
+            href="https://github.com/book-of-infinite-tales/Book-of-Infinite-Tales"
             target="_blank"
             rel="noreferrer"
             className="footer-github"
@@ -274,7 +277,7 @@ export function App() {
             </svg>
             {' '}GitHub
           </a>
-          {' · '}© 2026 Rob McArthur · MIT License
+          {' · '}© 2026 · MIT License
         </p>
       </footer>
     </main>

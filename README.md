@@ -19,7 +19,7 @@ npm test          # unit tests (Vitest)
 
 ## Book format
 
-A Book of Tales is a public GitHub repo containing a `book.json` at the root (or in a subdirectory). See the [Book of Tales Template](https://github.com/RobMcA/Book-of-Tales-Template) to start your own, and the [book-of-tales-example](https://github.com/RobMcA/book-of-tales-example) for full format documentation.
+A Book of Tales is a public GitHub repo containing a `book.json` at the root (or in a subdirectory). See the [Book of Tales Template](https://github.com/RobMcA/Book-of-Tales-Template) to start your own, and [book_format.md](https://github.com/RobMcA/Book-of-Tales-Template/blob/main/docs/book_format.md) for full format documentation.
 
 ### Quick reference
 
